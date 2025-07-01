@@ -1,0 +1,26 @@
+# Ambiente virtual
+venv/
+.env
+*.env
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Arquivos de log e debug
+*.log
+
+# Dados gerados
+*.sqlite3
+*.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
