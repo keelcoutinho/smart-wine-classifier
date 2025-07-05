@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 # Para rodar:
 # - Dentro de /tests:     pytest -v test_api.py
-# - Dentro de /backend:   pytest -v test_api.py.py
+# - Dentro de /backend:   pytest -v tests/test_api.py
 
 # =========================
 # 🔧 FIXTURE GLOBAL DO BANCO
