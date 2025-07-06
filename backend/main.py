@@ -181,7 +181,12 @@ def atualizar_vinho(vinho_id: int, vinho: VinhoEntrada):
     dados = pd.DataFrame([vinho.dict(exclude={"nome", "fornecedor", "documento"})])
     pred = modelo_carregado.predict(dados)[0]
     rotulo = "BOM" if pred == 1 else "RUIM"
-    doc_anon = anonimizar_documento(vinho.documento)
+
+    numeros = re.sub(r'\D', '', vinho.documento)
+    if len(numeros) >= 11:
+        doc_anon = anonimizar_documento(vinho.documento)
+    else:
+        doc_anon = vinho.documento
 
     conn = get_connection()
     cursor = conn.cursor()
