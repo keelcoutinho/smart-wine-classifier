@@ -106,7 +106,7 @@ app.add_middleware(
 class VinhoEntrada(BaseModel):
     nome: str
     fornecedor: str
-    documento: str = Field(..., min_length=11, max_length=20)
+    documento: str
     acidez_fixa: float
     acidez_volatil: float
     acido_citrico: float
