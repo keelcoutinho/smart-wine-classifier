@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware  # ✅ Importação necessária
 from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field
@@ -15,7 +15,6 @@ from sklearn.metrics import f1_score, accuracy_score
 # 🔄 CARREGA O MODELO
 # ====================================
 
-## Caminho relativo
 CAMINHO_MODELO = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 
     '..',
@@ -33,13 +32,11 @@ with open(CAMINHO_MODELO, 'rb') as f:
 # 💾 CONECTAR AO BANCO DE DADOS SQLITE
 # ====================================
 
-# Define função para reutilização e testes
 def get_connection():
     if os.getenv("TESTING") == "1":
         return sqlite3.connect(":memory:", check_same_thread=False)
     return sqlite3.connect("vinhos.db", check_same_thread=False)
 
-# Criar tabela se não existir 
 conn = get_connection()
 cursor = conn.cursor()
 cursor.execute('''
@@ -72,24 +69,40 @@ conn.close()
 def anonimizar_documento(doc: str) -> str:
     if not doc:
         return ""
-
-    # Extrai apenas os números
     numeros = re.sub(r'\D', '', doc)
-
-    if len(numeros) == 11:  # CPF
+    if len(numeros) == 11:
         doc_anon = re.sub(r'\d', '*', numeros[:-3]) + numeros[-3:]
         return f"{doc_anon[:3]}.{doc_anon[3:6]}.{doc_anon[6:9]}-{doc_anon[9:]}"
-    
-    elif len(numeros) == 14:  # CNPJ
+    elif len(numeros) == 14:
         doc_anon = re.sub(r'\d', '*', numeros[:-3]) + numeros[-3:]
         return f"{doc_anon[:2]}.{doc_anon[2:5]}.{doc_anon[5:8]}/{doc_anon[8:12]}-{doc_anon[12:]}"
-    
     else:
-        # Documento inválido ou fora dos padrões (retorna mascarado genérico)
         doc_anon = re.sub(r'\d', '*', numeros[:-3]) + numeros[-3:]
         return doc_anon
 
-# Modelo Pydantic
+# ====================================
+# 🚀 INICIALIZA FASTAPI
+# ====================================
+
+app = FastAPI(
+    title="Wine Quality Classifier",
+    description="API para predição da qualidade de vinhos usando ML",
+    version="1.0.0"
+)
+
+# ✅ ADICIONE ESTE BLOCO AQUI (JÁ ESTÁ NO SEU CÓDIGO)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Em produção, substitua por domínios específicos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ====================================
+# 📦 MODELOS
+# ====================================
+
 class VinhoEntrada(BaseModel):
     nome: str
     fornecedor: str
@@ -110,27 +123,10 @@ class VinhoSaida(VinhoEntrada):
     id: int
     classificacao: str
 
-# FastAPI app
-app = FastAPI(
-    title="Wine Quality Classifier",
-    description="API para predição da qualidade de vinhos usando ML",
-    version="1.0.0"
-)
-
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # ====================================
-# 🛣️ ROTAS A PARTIR DAQUI 
+# 🛣️ ROTAS
 # ====================================
 
-# Rota para criar novo vinho
 @app.post("/vinhos", response_model=VinhoSaida)
 def criar_vinho(vinho: VinhoEntrada):
     dados = pd.DataFrame([vinho.dict(exclude={"nome", "fornecedor", "documento"})])
@@ -158,7 +154,6 @@ def criar_vinho(vinho: VinhoEntrada):
     conn.close()
     return VinhoSaida(id=vid, classificacao=rotulo, **vinho.dict())
 
-# Rota para listar todos os vinhos
 @app.get("/vinhos", response_model=List[VinhoSaida])
 def listar_vinhos():
     conn = get_connection()
@@ -169,7 +164,18 @@ def listar_vinhos():
     conn.close()
     return [VinhoSaida(**dict(zip(colunas, linha))) for linha in linhas]
 
-# Rota para atualizar vinho
+@app.get("/vinhos/{vinho_id}", response_model=VinhoSaida)
+def obter_vinho(vinho_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM vinhos WHERE id=?", (vinho_id,))
+    linha = cursor.fetchone()
+    colunas = [col[0] for col in cursor.description]
+    conn.close()
+    if not linha:
+        raise HTTPException(status_code=404, detail="Vinho não encontrado")
+    return VinhoSaida(**dict(zip(colunas, linha)))
+
 @app.put("/vinhos/{vinho_id}", response_model=VinhoSaida)
 def atualizar_vinho(vinho_id: int, vinho: VinhoEntrada):
     dados = pd.DataFrame([vinho.dict(exclude={"nome", "fornecedor", "documento"})])
@@ -194,23 +200,20 @@ def atualizar_vinho(vinho_id: int, vinho: VinhoEntrada):
     conn.close()
     return VinhoSaida(id=vinho_id, classificacao=rotulo, **vinho.dict())
 
-# Rota para deletar vinho
 @app.delete("/vinhos/{vinho_id}")
 def deletar_vinho(vinho_id: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM vinhos WHERE id=?", (vinho_id,))
     conn.commit()
-    
     if cursor.rowcount == 0:
         conn.close()
         raise HTTPException(status_code=422, detail="Vinho não encontrado.")
-    
     conn.close()
     return {"mensagem": "Vinho deletado com sucesso."}
 
 # ====================================
-# 🛣️ SWAGGER 
+# 📘 SWAGGER CUSTOMIZADO
 # ====================================
 
 def custom_openapi():

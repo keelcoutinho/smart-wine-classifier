@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wine Quality Classifier</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Navbar com logo -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <img src="assets/images/logo.png" alt="Wine Classifier Logo" class="logo-img me-2" id="mainLogo">
+                Wine Classifier
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#classify">Classificar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#wines">Lista de Vinhos</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section com background -->
+    <header class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="container text-center py-5 hero-content">
+            <h1 class="display-4 fw-bold text-white">Wine Quality Classifier</h1>
+            <p class="lead text-white">Sistema inteligente para classificação da qualidade de vinhos</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container my-5">
+        <!-- Classificação Section -->
+        <section id="classify" class="mb-5">
+            <h2 class="mb-4 text-center"><i class="fas fa-wine-glass-alt me-2"></i>Classificar Novo Vinho</h2>
+            <div class="card shadow">
+                <div class="card-body">
+                    <form id="wineForm" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="nome" class="form-label">Nome do Vinho</label>
+                            <input type="text" class="form-control" id="nome" name="nome" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fornecedor" class="form-label">Fornecedor</label>
+                            <input type="text" class="form-control" id="fornecedor" name="fornecedor" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="documento" class="form-label">CPF/CNPJ do Fornecedor</label>
+                            <input type="text" class="form-control" id="documento" name="documento" required>
+                            <small class="text-muted">Será anonimizado automaticamente</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="acidez_fixa" class="form-label">Acidez Fixa (g/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="acidez_fixa" name="acidez_fixa"
+                                required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="acidez_volatil" class="form-label">Acidez Volátil (g/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="acidez_volatil"
+                                name="acidez_volatil" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="acido_citrico" class="form-label">Ácido Cítrico (g/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="acido_citrico" name="acido_citrico"
+                                required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="acucar_residual" class="form-label">Açúcar Residual (g/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="acucar_residual"
+                                name="acucar_residual" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cloretos" class="form-label">Cloretos (g/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="cloretos" name="cloretos" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dioxido_enxofre_livre" class="form-label">SO₂ Livre (mg/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="dioxido_enxofre_livre"
+                                name="dioxido_enxofre_livre" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="dioxido_enxofre_total" class="form-label">SO₂ Total (mg/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="dioxido_enxofre_total"
+                                name="dioxido_enxofre_total" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="densidade" class="form-label">Densidade (g/cm³)</label>
+                            <input type="number" step="any" class="form-control" id="densidade" name="densidade"
+                                required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="ph" class="form-label">pH</label>
+                            <input type="number" step="any" class="form-control" id="ph" name="ph" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="sulfatos" class="form-label">Sulfatos (g/dm³)</label>
+                            <input type="number" step="any" class="form-control" id="sulfatos" name="sulfatos" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="teor_alcoolico" class="form-label">Teor Alcoólico (%)</label>
+                            <input type="number" step="any" class="form-control" id="teor_alcoolico"
+                                name="teor_alcoolico" required>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-flask me-2"></i>Classificar Vinho
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Resultado -->
+                    <div id="resultContainer" class="mt-4 d-none">
+                        <div class="alert alert-success">
+                            <h4 class="alert-heading"><i class="fas fa-check-circle me-2"></i>Resultado da Classificação
+                            </h4>
+                            <p>Este vinho foi classificado como: <strong id="classificationResult"></strong></p>
+                            <hr>
+                            <p class="mb-0">Os dados foram armazenados no banco de dados.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lista de Vinhos Section -->
+        <section id="wines">
+            <h2 class="mb-4 text-center"><i class="fas fa-list me-2"></i>Lista de Vinhos Classificados</h2>
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nome</th>
+                                    <th>Fornecedor</th>
+                                    <th>Documento</th>
+                                    <th>Classificação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="winesTableBody">
+                                <!-- Dados serão carregados via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal para Edição -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Vinho</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="editModalBody">
+                    <!-- Conteúdo será carregado via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveChangesBtn">Salvar Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container text-center">
+            <p class="mb-0">© 2025 Wine Quality Classifier - Todos os direitos reservados</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JavaScript Personalizado -->
+    <script src="script.js"></script>
+</body>
+
+</html>
