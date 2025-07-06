@@ -63,7 +63,7 @@ bash
 
 cd backend
 
-python -m venv venv
+python -m venv venv  # Usar versão do python 3.11.0
 
 source venv/bin/activate  # Linux/Mac
 
