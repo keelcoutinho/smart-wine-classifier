@@ -1,4 +1,5 @@
-# 🍷 Wine Quality Classifier
+# smart-wine-classifier
+### 🍷 Wine Quality Classifier
 
 Um sistema inteligente para classificação da qualidade de vinhos tintos utilizando machine learning, com interface web e API RESTful.
 
