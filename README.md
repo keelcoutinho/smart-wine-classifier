@@ -84,7 +84,7 @@ Inicie o servidor backend:
 ```
 bash
 
-uvicorn backend:app --reload
+uvicorn main:app --reload
 ```
 
 Abra o frontend no navegador:
