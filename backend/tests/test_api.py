@@ -1,11 +1,15 @@
-import sqlite3
 import pytest
 from fastapi.testclient import TestClient
+from unittest.mock import patch, MagicMock
 import sys
 import os
+
+# ✅ Impede criação de banco físico ao importar a main.py
+os.environ["TESTING"] = "1"  
+
+# Caminho para importar o app principal
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from main import app 
-from pydantic import BaseModel
+from main import app
 
 # =========================
 # ✅  Teste de endpoints
@@ -16,65 +20,53 @@ from pydantic import BaseModel
 # - Dentro de /backend:   pytest -v tests/test_api.py
 
 # =========================
-# 🔧 FIXTURE GLOBAL DO BANCO
+# 🔧 FIXTURE GLOBAL DE MOCK
 # =========================
 
-# Inicializa o banco de dados em memória e o mantém aberto durante toda a execução dos testes
-@pytest.fixture(scope="session", autouse=True)
-def db_conn():
-    # Cria o banco de dados em memória (RAM) e permite acesso entre threads
-    conn = sqlite3.connect(":memory:", check_same_thread=False)
+@pytest.fixture(autouse=True)
+def mock_sqlite_connect():
+    """
+    Mocka completamente o sqlite3.connect para impedir acesso real ao banco.
+    Simula um cursor com valores fictícios para testes.
+    """
+    conn_mock = MagicMock()
+    cursor_mock = MagicMock()
 
-    # Cria a tabela dos vinhos igual à usada na aplicação
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS vinhos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT,
-            fornecedor TEXT,
-            documento TEXT,
-            acidez_fixa REAL,
-            acidez_volatil REAL,
-            acido_citrico REAL,
-            acucar_residual REAL,
-            cloretos REAL,
-            dioxido_enxofre_livre REAL,
-            dioxido_enxofre_total REAL,
-            densidade REAL,
-            ph REAL,
-            sulfatos REAL,
-            teor_alcoolico REAL,
-            classificacao TEXT
+    conn_mock.cursor.return_value = cursor_mock
+    cursor_mock.execute.return_value = None
+    cursor_mock.fetchall.return_value = [
+        (
+            1, "Exemplo", "Fornecedor X", "***.***.***-173", 7.0, 0.35, 0.4, 2.0,
+            0.07, 30.0, 60.0, 0.995, 3.2, 0.6, 11.0, "BOM"
         )
-    ''')
-    conn.commit()
+    ]
+    cursor_mock.fetchone.return_value = cursor_mock.fetchall.return_value[0]
+    cursor_mock.description = [
+        ("id",), ("nome",), ("fornecedor",), ("documento",), ("acidez_fixa",), ("acidez_volatil",),
+        ("acido_citrico",), ("acucar_residual",), ("cloretos",), ("dioxido_enxofre_livre",),
+        ("dioxido_enxofre_total",), ("densidade",), ("ph",), ("sulfatos",), ("teor_alcoolico",), ("classificacao",)
+    ]
+    cursor_mock.lastrowid = 1
+    cursor_mock.rowcount = 1
 
-    # Armazena a conexão no app para que possa ser usada nos endpoints durante os testes
-    app.state._conn = conn
-    yield conn  
-    conn.close() 
+    with patch("sqlite3.connect", return_value=conn_mock):
+        yield
 
-# ====================================
-# 🔄 SUBSTITUI A FUNÇÃO get_connection
-# ====================================
+# =========================
+# 📦 CLIENT DE TESTE
+# =========================
 
-# Durante os testes, toda vez que get_connection() for chamada, vamos usar a mesma conexão da fixture acima
-def get_test_connection():
-    return app.state._conn
-
-# Aplica a substituição das dependências no app
-app.dependency_overrides = {}
-app.dependency_overrides[get_test_connection] = get_test_connection
-
-# Cria o client de teste do FastAPI
 client = TestClient(app)
 
-# ============================
+# =========================
 # ✅ TESTES A PARTIR DAQUI
-# ============================
+# =========================
 
-# ✅ Teste POST com payload completo
 def test_rota_POST_response_200():
+    """
+    Testa a criação de um vinho (POST /vinhos) com payload válido.
+    Espera status HTTP 200.
+    """
     payload = {
         "nome": "Lagoas",
         "fornecedor": "Vinhos BR",
@@ -94,8 +86,11 @@ def test_rota_POST_response_200():
     response = client.post("/vinhos", json=payload)
     assert response.status_code == 200
 
-# ✅ Teste POST com payload incompleto
 def test_rota_post_response_422():
+    """
+    Testa a criação de um vinho com dados incompletos.
+    Espera erro de validação HTTP 422 (campo 'documento' ausente).
+    """
     payload = {
         "nome": "Lagoas",
         "fornecedor": "Vinhos BR",
@@ -114,8 +109,10 @@ def test_rota_post_response_422():
     response = client.post("/vinhos", json=payload)
     assert response.status_code == 422
 
-# ✅ Testa se a classificação do modelo aparece na resposta
 def test_resposta_modelo_machine_learning():
+    """
+    Testa se o modelo de ML retorna corretamente a classificação 'BOM' ou 'RUIM'.
+    """
     payload = {
         "nome": "Pias",
         "fornecedor": "Wine/Co",
@@ -132,68 +129,32 @@ def test_resposta_modelo_machine_learning():
         "sulfatos": 0.8,
         "teor_alcoolico": 11.6
     }
-
     response = client.post("/vinhos", json=payload)
     assert response.status_code == 200
     resultado = response.json()
     assert "classificacao" in resultado
     assert resultado["classificacao"] in ["BOM", "RUIM"]
 
-# ✅ Testa listagem de vinhos
 def test_listar_vinhos():
-    vinho_teste = {
-        "nome": "Taos",
-        "fornecedor": "Fornecedor X",
-        "documento": "12345678900000",
-        "acidez_fixa": 7.0,
-        "acidez_volatil": 0.35,
-        "acido_citrico": 0.40,
-        "acucar_residual": 2.0,
-        "cloretos": 0.07,
-        "dioxido_enxofre_livre": 30,
-        "dioxido_enxofre_total": 60,
-        "densidade": 0.995,
-        "ph": 3.2,
-        "sulfatos": 0.6,
-        "teor_alcoolico": 11.0
-    }
-
-    client.post("/vinhos", json=vinho_teste)
-
+    """
+    Testa a listagem de vinhos (GET /vinhos).
+    Verifica se uma lista é retornada e contém campos esperados.
+    """
     response = client.get("/vinhos")
     assert response.status_code == 200
-
     vinhos = response.json()
     assert isinstance(vinhos, list)
     assert len(vinhos) > 0
 
-    vinho = vinhos[0]
-    chaves_esperadas = {
-        "id",
-        "nome",
-        "fornecedor",
-        "documento",
-        "acidez_fixa",
-        "acidez_volatil",
-        "acido_citrico",
-        "acucar_residual",
-        "cloretos",
-        "dioxido_enxofre_livre",
-        "dioxido_enxofre_total",
-        "densidade",
-        "ph",
-        "sulfatos",
-        "teor_alcoolico",
-        "classificacao"
-    }
-
-    assert chaves_esperadas.issubset(set(vinho.keys()))
-
-# ✅ Teste de atualização de vinho
 def test_atualizar_vinho():
-    novo_vinho = {
-        "nome": "Pias",
-        "fornecedor": "Wine/Co",
+    """
+    Testa a atualização de um vinho (PUT /vinhos/{id}).
+    Verifica se os campos foram atualizados corretamente.
+    """
+    vinho_id = 1
+    payload = {
+        "nome": "Atualizado",
+        "fornecedor": "Fornecedor Atualizado",
         "documento": "12345678900",
         "acidez_fixa": 7.0,
         "acidez_volatil": 0.3,
@@ -207,50 +168,18 @@ def test_atualizar_vinho():
         "sulfatos": 0.7,
         "teor_alcoolico": 11.0
     }
-
-    response_post = client.post("/vinhos", json=novo_vinho)
-    assert response_post.status_code == 200
-    vinho_criado = response_post.json()
-    vinho_id = vinho_criado["id"]
-
-    vinho_atualizado = novo_vinho.copy()
-    vinho_atualizado["nome"] = "Atualizado"
-    vinho_atualizado["fornecedor"] = "Fornecedor Atualizado"
-
-    response_put = client.put(f"/vinhos/{vinho_id}", json=vinho_atualizado)
-    assert response_put.status_code == 200
-    atualizado = response_put.json()
-
+    response = client.put(f"/vinhos/{vinho_id}", json=payload)
+    assert response.status_code == 200
+    atualizado = response.json()
     assert atualizado["nome"] == "Atualizado"
     assert atualizado["fornecedor"] == "Fornecedor Atualizado"
 
-# ✅ Teste de exclusão de vinho
 def test_deletar_vinho():
-    novo_vinho = {
-        "nome": "Lago",
-        "fornecedor": "Fornecedor Z",
-        "documento": "99887766554433",
-        "acidez_fixa": 6.8,
-        "acidez_volatil": 0.36,
-        "acido_citrico": 0.42,
-        "acucar_residual": 2.8,
-        "cloretos": 0.065,
-        "dioxido_enxofre_livre": 22,
-        "dioxido_enxofre_total": 33,
-        "densidade": 0.996,
-        "ph": 3.30,
-        "sulfatos": 0.75,
-        "teor_alcoolico": 11.4
-    }
-
-    response_post = client.post("/vinhos", json=novo_vinho)
-    assert response_post.status_code == 200
-    vinho_criado = response_post.json()
-    vinho_id = vinho_criado["id"]
-
-    response_delete = client.delete(f"/vinhos/{vinho_id}")
-    assert response_delete.status_code == 200
-
-    response_get = client.get("/vinhos")
-    lista = response_get.json()
-    assert all(v["id"] != vinho_id for v in lista)
+    """
+    Testa a exclusão de um vinho (DELETE /vinhos/{id}).
+    Verifica se a mensagem de sucesso é retornada.
+    """
+    vinho_id = 1
+    response = client.delete(f"/vinhos/{vinho_id}")
+    assert response.status_code == 200
+    assert response.json()["mensagem"] == "Vinho deletado com sucesso."

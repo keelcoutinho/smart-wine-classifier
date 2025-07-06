@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  # ✅ Importação necessária
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field
@@ -37,30 +37,31 @@ def get_connection():
         return sqlite3.connect(":memory:", check_same_thread=False)
     return sqlite3.connect("vinhos.db", check_same_thread=False)
 
-conn = get_connection()
-cursor = conn.cursor()
-cursor.execute('''
-    CREATE TABLE IF NOT EXISTS vinhos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT,
-        fornecedor TEXT,
-        documento TEXT,
-        acidez_fixa REAL,
-        acidez_volatil REAL,
-        acido_citrico REAL,
-        acucar_residual REAL,
-        cloretos REAL,
-        dioxido_enxofre_livre REAL,
-        dioxido_enxofre_total REAL,
-        densidade REAL,
-        ph REAL,
-        sulfatos REAL,
-        teor_alcoolico REAL,
-        classificacao TEXT
-    )
-''')
-conn.commit()
-conn.close()
+if os.getenv("TESTING") != "1":
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS vinhos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT,
+            fornecedor TEXT,
+            documento TEXT,
+            acidez_fixa REAL,
+            acidez_volatil REAL,
+            acido_citrico REAL,
+            acucar_residual REAL,
+            cloretos REAL,
+            dioxido_enxofre_livre REAL,
+            dioxido_enxofre_total REAL,
+            densidade REAL,
+            ph REAL,
+            sulfatos REAL,
+            teor_alcoolico REAL,
+            classificacao TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
 
 # ====================================
 # 🔐 ANONIMIZAÇÃO DO CPF/CNPJ
@@ -90,10 +91,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# ✅ ADICIONE ESTE BLOCO AQUI (JÁ ESTÁ NO SEU CÓDIGO)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, substitua por domínios específicos
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
